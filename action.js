@@ -1,16 +1,18 @@
 let hourly_rate = 2500;
 
 let currentUrl = window.location.href;
-
 let ev = new Date().getFullYear();
 let honap = new Date().getMonth() + 1;
 
 
 if(currentUrl.split('jelenleti-iv/')[1] == undefined || currentUrl.split('jelenleti-iv/')[1].split('/')[0] == ev && currentUrl.split('jelenleti-iv/')[1].split('/')[1] == honap){
-    counting();
+    counting_for_actual_month();
+}else if(currentUrl.split('jelenleti-iv/')[1].split('/')[0] < ev ||
+         currentUrl.split('jelenleti-iv/')[1].split('/')[0] == ev && currentUrl.split('jelenleti-iv/')[1].split('/')[1] < honap){
+    counting_for_previous_month();
 }
 
-function counting(){
+function counting_for_actual_month(){
     document.querySelector('#main').querySelectorAll('h4')[0].innerText += ' -- ' + hourly_rate + ' Ft/óra'
     let trs = document.querySelectorAll('table')[0].querySelectorAll('tr');
     trs[0].innerHTML +=  '<th>Óraszám2</th>'
@@ -80,4 +82,9 @@ function counting(){
     sum_minute = sum_minute - (Math.floor(sum_minute/60)*60);
     const money = new Intl.NumberFormat('hu-HU').format(sum_hour*hourly_rate);
     trs[length-1].innerHTML += '<td>' + sum_hour + ":" + sum_minute + ' --> ' + money + 'Ft </td>';
+}
+
+
+function counting_for_previous_month(){
+    console.log("Még folyamatban van a kód írása, türelmesen várj!");
 }
