@@ -1,14 +1,12 @@
 let hourly_rate = 2500;
 
 let currentUrl = window.location.href;
-console.log(currentUrl);
 
-let ev = new Date().getFullYear();       // pl. 2026
-let honap = new Date().getMonth() + 1;   // 0-11 között adja vissza, ezért kell a +1 (1 = Január)
-
+let ev = new Date().getFullYear();
+let honap = new Date().getMonth() + 1;
 
 
-if(currentUrl.split('jelenleti-iv/')[1].split('/')[0] == ev && currentUrl.split('jelenleti-iv/')[1].split('/')[1] == honap){
+if(currentUrl.split('jelenleti-iv/')[1] == undefined || currentUrl.split('jelenleti-iv/')[1].split('/')[0] == ev && currentUrl.split('jelenleti-iv/')[1].split('/')[1] == honap){
     counting();
 }
 
