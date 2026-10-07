@@ -1,4 +1,8 @@
-let hourly_rate = 2500;
+let hourly_rate_before_25 = 2500;
+let hourly_rate_after_25 = 2200;
+
+let INPUT = 1;
+let TEXT = 0;
 
 let currentUrl = window.location.href;
 let ev = new Date().getFullYear();
@@ -6,14 +10,18 @@ let honap = new Date().getMonth() + 1;
 
 
 if(currentUrl.split('jelenleti-iv/')[1] == undefined || currentUrl.split('jelenleti-iv/')[1].split('/')[0] == ev && currentUrl.split('jelenleti-iv/')[1].split('/')[1] == honap){
-    counting_for_actual_month();
-}else if(currentUrl.split('jelenleti-iv/')[1].split('/')[0] < ev ||
-         currentUrl.split('jelenleti-iv/')[1].split('/')[0] == ev && currentUrl.split('jelenleti-iv/')[1].split('/')[1] < honap){
-    counting_for_previous_month();
+    counting(INPUT);
+    document.querySelector('#main').querySelectorAll('h5')[0].innerText += ' -- ' + hourly_rate_before_25 + ' Ft/óra'
+
+}else if( currentUrl.split('jelenleti-iv/')[1].split('/')[0]    < ev ||
+          ( currentUrl.split('jelenleti-iv/')[1].split('/')[0] == ev && 
+            currentUrl.split('jelenleti-iv/')[1].split('/')[1]  < honap)  ) {
+    
+    counting(TEXT);
 }
 
-function counting_for_actual_month(){
-    document.querySelector('#main').querySelectorAll('h4')[0].innerText += ' -- ' + hourly_rate + ' Ft/óra'
+
+function counting(param){
     let trs = document.querySelectorAll('table')[0].querySelectorAll('tr');
     trs[0].innerHTML +=  '<th>Óraszám2</th>'
     let sum_hour = 0;
@@ -21,9 +29,20 @@ function counting_for_actual_month(){
     let length = trs.length;
     trs.forEach((tr, index) => { 
         if (index === 0 || index === length-1) return;
-        let from_string = tr.querySelectorAll('td')[1].querySelector('input').value;
-        let to_string = tr.querySelectorAll('td')[2].querySelector('input').value;
-        let minus_string = tr.querySelectorAll('td')[3].querySelector('input').value;
+        
+        let from_string = tr.querySelectorAll('td')[1];
+        let to_string = tr.querySelectorAll('td')[2];
+        let minus_string = tr.querySelectorAll('td')[3];
+        
+        if(param == 1){
+            from_string =   from_string.querySelector('input').value;
+            to_string =     to_string.querySelector('input').value;
+            minus_string =  minus_string.querySelector('input').value;
+        }else {
+            from_string =   from_string.innerText;
+            to_string =     to_string.innerText;
+            minus_string =  minus_string.innerText;
+        }
         
         if( from_string == "" || to_string == "" ){ tr.innerHTML += '<td>0</td>'; }
         else{
@@ -33,6 +52,7 @@ function counting_for_actual_month(){
             let to_minute = to_string.split(':')[1];
             let minus_hour = 0;
             let minus_minute = 0;
+
             if(minus_string != ""){
                 minus_hour = minus_string.split(':')[0];
                 minus_minute = minus_string.split(':')[1];
@@ -46,12 +66,13 @@ function counting_for_actual_month(){
                 to_minute = to_minute-minus_minute;
             }
 
-            if(plus == 1){
-                to_hour = to_hour-1-minus_hour;
-            }else{
-                to_hour = to_hour-minus_hour;
+            switch (plus) {
+                case 1:
+                    to_hour = to_hour-1-minus_hour; break;
+                default:
+                    to_hour = to_hour-minus_hour; break;
             }
-
+            
 
             let result_minute;
             let result_hour;
@@ -78,13 +99,11 @@ function counting_for_actual_month(){
             tr.innerHTML += '<td>' + result + '</td>';
         }
     });
+
     sum_hour += Math.floor(sum_minute/60);
     sum_minute = sum_minute - (Math.floor(sum_minute/60)*60);
-    const money = new Intl.NumberFormat('hu-HU').format(sum_hour*hourly_rate);
+    
+    const money = new Intl.NumberFormat('hu-HU').format(sum_hour*hourly_rate_before_25);
     trs[length-1].innerHTML += '<td>' + sum_hour + ":" + sum_minute + ' --> ' + money + 'Ft </td>';
-}
-
-
-function counting_for_previous_month(){
-    console.log("Még folyamatban van a kód írása, türelmesen várj!");
+    document.querySelector('#main').querySelectorAll('h5')[0].innerText += ' -- ' + hourly_rate_before_25 + ' Ft/óra'
 }
