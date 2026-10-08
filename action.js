@@ -20,6 +20,11 @@ if (currentUrl.split('jelenleti-iv/')[1] == undefined || currentUrl.split('jelen
 }
 
 
+
+
+
+
+
 function counting(param) {
     let trs = document.querySelectorAll('table')[0].querySelectorAll('tr');
     trs[0].innerHTML += '<th>Óraszám2</th>'
@@ -33,7 +38,14 @@ function counting(param) {
 
     trs.forEach((tr, index) => {
         if (index === 0 || index === length - 1) return;
-        if (tr.querySelectorAll('td')[0].innerText == hungarianDate) { tr.style.backgroundColor = '#BFE3BA'; }
+        if (tr.querySelectorAll('td')[0].innerText == hungarianDate) { 
+            tr.style.backgroundColor = '#BFE3BA';
+            tr.scrollIntoView({
+                behavior: "smooth", // Finom, animált görgetés (használhatsz "auto"-t is azonnali ugráshoz)
+                block: "center",    // Függőlegesen a képernyő KÖZEPÉRE pozícionálja az elemet
+                inline: "center"   // Vízszintesen is középre teszi (ha van vízszintes görgetés)
+            });
+        }
 
         let from_string = tr.querySelectorAll('td')[1];
         let to_string = tr.querySelectorAll('td')[2];
