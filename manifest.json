@@ -1,13 +1,16 @@
 {
-    "manifest_version": 3,
-    "name": "Schonherz - jelenléti ív",
-    "version": "1.0",
-    "description": "Schönherznek a weboldalán a jelenléti ívhez tartozó idők átváltása és a fizettség számítása",
-    "content_scripts": [
-        {
-        "matches": ["https://schonherz.hu/jelenleti-iv*"],
-        "js": ["action.js"],
-        "run_at": "document_idle"
-        }
-    ]
+  "manifest_version": 3,
+  "name": "Schonherz - jelenléti ív",
+  "version": "1.0",
+  "description": "Schönherznek a weboldalán a jelenléti ívhez tartozó idők átváltása és a fizettség számítása",
+  "permissions": [
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://schonherz.hu/jelenleti-iv*"],
+      "js": ["action.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }
