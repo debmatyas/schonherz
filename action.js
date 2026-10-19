@@ -6,11 +6,14 @@
  * 2. Napi ledolgozott órák és percek automatikus kiszámítása levonásokkal együtt.
  * 3. Havi összesített óraszám és várható fizetés kiszámítása az adott hónap óradíjával.
  * 4. A mai nap kiemelése és automatikus odagörgetés.
+ * 5. Hátralévő munkanapok számának megjelenítése a hónap végéig (egymás alatti elrendezésben, dinamikus színnel).
  */
 
 // ============================================================================
-// SEGÉDFÜGGVÉNY: ÉV ÉS HÓNAP KINYERÉSE AZ URL-BŐL VAGY A MAI DÁTUMBÓL
+// SEGÉDFÜGGVÉNYEK
 // ============================================================================
+
+// Év és hónap kinyerése az URL-ből vagy a mai dátumból
 function getYearMonthKey() {
     const currentUrl = window.location.href;
     const today = new Date();
@@ -30,8 +33,31 @@ function getYearMonthKey() {
         }
     }
 
-    // Visszaadjuk a dinamikus kulcsnevet (pl. "hourly_rate_2026_10")
     return `hourly_rate_${year}_${month}`;
+}
+
+// Hátralévő munkanapok kiszámítása a mai naptól a hónap utolsó munkanapjáig (bezárólag)
+function getRemainingWorkdaysInMonth() {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-11
+    
+    // Hónap utolsó napja
+    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    
+    let workdaysRemaining = 0;
+    
+    for (let day = today.getDate(); day <= lastDayOfMonth; day++) {
+        const date = new Date(currentYear, currentMonth, day);
+        const dayOfWeek = date.getDay(); // 0: vasárnap, 6: szombat
+        
+        // Hétfőtől péntekig számolunk munkanapként (1-5)
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            workdaysRemaining++;
+        }
+    }
+    
+    return workdaysRemaining;
 }
 
 // Dinamikus memóriakulcs meghatározása az aktuális nézethez
@@ -44,7 +70,7 @@ const storageKey = getYearMonthKey();
 const h4 = document.querySelector('#main')?.querySelectorAll('h4')[0];
 
 if (h4) {
-    // A) Konténer (wrapper) létrehozása
+    // A) Konténer (wrapper) létrehozása (inline-flex helyett block/flex, hogy alatta legyen a h4)
     const wrapper = document.createElement('div');
     wrapper.style.display = 'inline-flex';
     wrapper.style.alignItems = 'center';
@@ -111,7 +137,51 @@ if (h4) {
     // G) Elemek beszúrása a DOM-ba
     wrapper.appendChild(input);
     wrapper.appendChild(suffix);
-    h4.after(wrapper);
+    
+    // Hozzáhozzuk a fő h4 elemhez a beviteli mezőt, de hogy alá kerüljön az új h4, 
+    // egy közös szülőbe vagy blokkosítva tehetjük. Csomagoljuk egy külső flex konténerbe:
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.alignItems = 'flex-start';
+    container.style.margin = '5px 0';
+
+    container.appendChild(wrapper);
+
+    // H) Hátralévő munkanapok kiírása feltételes színezéssel, ha az aktuális hónapban vagyunk
+    const currentUrl = window.location.href;
+    const today = new Date();
+    const ev = today.getFullYear();
+    const honap = today.getMonth() + 1;
+    const urlParts = currentUrl.split('jelenleti-iv/')[1];
+
+    const isCurrentMonth = !urlParts || (Number(urlParts.split('/')[0]) === ev && Number(urlParts.split('/')[1]) === honap);
+
+    if (isCurrentMonth) {
+        const remainingDays = getRemainingWorkdaysInMonth();
+        const remainingH4 = document.createElement('h4');
+        
+        remainingH4.style.marginTop = '6px';
+        remainingH4.style.marginBottom = '0';
+        remainingH4.style.padding = '6px 10px';
+        remainingH4.style.borderRadius = '4px';
+        
+        // Dinamikus háttér- és szövegszín (< 7 piros, egyébként zöld)
+        if (remainingDays <= 7) {
+            remainingH4.style.backgroundColor = '#f8d7da';
+            remainingH4.style.color = '#721c24';
+            remainingH4.style.border = '1px solid #f5c6cb';
+        } else {
+            remainingH4.style.backgroundColor = '#d4edda';
+            remainingH4.style.color = '#155724';
+            remainingH4.style.border = '1px solid #c3e6cb';
+        }
+
+        remainingH4.innerHTML = `Még <u>${remainingDays}</u> munkanap van hátra ebben a hónapban.`;
+        container.appendChild(remainingH4);
+    }
+
+    h4.after(container);
 }
 
 // ============================================================================
