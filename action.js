@@ -6,7 +6,7 @@
  * 2. Napi ledolgozott órák és percek automatikus kiszámítása levonásokkal együtt.
  * 3. Havi összesített óraszám és várható fizetés kiszámítása az adott hónap óradíjával.
  * 4. A mai nap kiemelése és automatikus odagörgetés.
- * 5. Hátralévő munkanapok számának megjelenítése a hónap végéig (egymás alatti elrendezésben, dinamikus színnel).
+ * 5. Hátralévő munkanapok számának megjelenítése a hónap végéig és PDF letöltő gomb.
  */
 
 // ============================================================================
@@ -14,7 +14,7 @@
 // ============================================================================
 
 // Év és hónap kinyerése az URL-ből vagy a mai dátumból
-function getYearMonthKey() {
+function getYearMonthContext() {
     const currentUrl = window.location.href;
     const today = new Date();
     let year = today.getFullYear();
@@ -33,7 +33,7 @@ function getYearMonthKey() {
         }
     }
 
-    return `hourly_rate_${year}_${month}`;
+    return { year, month, storageKey: `hourly_rate_${year}_${month}` };
 }
 
 // Hátralévő munkanapok kiszámítása a mai naptól a hónap utolsó munkanapjáig (bezárólag)
@@ -60,8 +60,9 @@ function getRemainingWorkdaysInMonth() {
     return workdaysRemaining;
 }
 
-// Dinamikus memóriakulcs meghatározása az aktuális nézethez
-const storageKey = getYearMonthKey();
+// Kontextus és dinamikus memóriakulcs meghatározása
+const context = getYearMonthContext();
+const storageKey = context.storageKey;
 
 // ============================================================================
 // 1. INPUT MEZŐ LÉTREHOZÁSA ÉS HÓNAP-SPECIFIKUS MEMÓRIAKEZELÉS
@@ -70,7 +71,7 @@ const storageKey = getYearMonthKey();
 const h4 = document.querySelector('#main')?.querySelectorAll('h4')[0];
 
 if (h4) {
-    // A) Konténer (wrapper) létrehozása (inline-flex helyett block/flex, hogy alatta legyen a h4)
+    // A) Konténer (wrapper) létrehozása az input mezőhöz
     const wrapper = document.createElement('div');
     wrapper.style.display = 'inline-flex';
     wrapper.style.alignItems = 'center';
@@ -105,7 +106,7 @@ if (h4) {
         }
     });
 
-    // E) Érték kiolvasása az adott hónaphoz tartozó kulcsból (pl. hourly_rate_2026_10)
+    // E) Érték kiolvasása az adott hónaphoz tartozó kulcsból
     chrome.storage.local.get([storageKey], (result) => {
         let hourly_rate = 0;
         
@@ -125,7 +126,6 @@ if (h4) {
         if (event.key === 'Enter') {
             const valueToSave = input.value !== '' ? Number(input.value) : '';
 
-            // Dinamikus kulccsal mentünk (pl. { hourly_rate_2026_10: 2500 })
             chrome.storage.local.set({ [storageKey]: valueToSave }, () => {
                 console.log(`Óradíj elmentve (${storageKey}):`, valueToSave);
                 input.blur();
@@ -138,8 +138,7 @@ if (h4) {
     wrapper.appendChild(input);
     wrapper.appendChild(suffix);
     
-    // Hozzáhozzuk a fő h4 elemhez a beviteli mezőt, de hogy alá kerüljön az új h4, 
-    // egy közös szülőbe vagy blokkosítva tehetjük. Csomagoljuk egy külső flex konténerbe:
+    // Külső konténer az elemek egymás alá rendezéséhez
     const container = document.createElement('div');
     container.style.display = 'flex';
     container.style.flexDirection = 'column';
@@ -148,7 +147,7 @@ if (h4) {
 
     container.appendChild(wrapper);
 
-    // H) Hátralévő munkanapok kiírása feltételes színezéssel, ha az aktuális hónapban vagyunk
+    // H) Hátralévő munkanapok kiírása és PDF letöltő gomb, ha az aktuális hónapban vagyunk
     const currentUrl = window.location.href;
     const today = new Date();
     const ev = today.getFullYear();
@@ -158,15 +157,21 @@ if (h4) {
     const isCurrentMonth = !urlParts || (Number(urlParts.split('/')[0]) === ev && Number(urlParts.split('/')[1]) === honap);
 
     if (isCurrentMonth) {
+        // Al-konténer a visszaszámláló doboznak és a gombnak egymás mellett
+        const rowDiv = document.createElement('div');
+        rowDiv.style.display = 'flex';
+        rowDiv.style.alignItems = 'center';
+        rowDiv.style.gap = '10px';
+        rowDiv.style.marginTop = '6px';
+
         const remainingDays = getRemainingWorkdaysInMonth();
         const remainingH4 = document.createElement('h4');
         
-        remainingH4.style.marginTop = '6px';
-        remainingH4.style.marginBottom = '0';
+        remainingH4.style.margin = '0';
         remainingH4.style.padding = '6px 10px';
         remainingH4.style.borderRadius = '4px';
         
-        // Dinamikus háttér- és szövegszín (< 7 piros, egyébként zöld)
+        // Dinamikus háttér- és szövegszín (<= 7 piros, egyébként zöld)
         if (remainingDays <= 7) {
             remainingH4.style.backgroundColor = '#f8d7da';
             remainingH4.style.color = '#721c24';
@@ -178,7 +183,36 @@ if (h4) {
         }
 
         remainingH4.innerHTML = `Még <u>${remainingDays}</u> munkanap van hátra ebben a hónapban.`;
-        container.appendChild(remainingH4);
+        rowDiv.appendChild(remainingH4);
+
+        // PDF Letöltés gomb létrehozása
+        const pdfButton = document.createElement('a');
+        // Megkeressük az oldalon lévő user ID-t, ha létezik, vagy kinyerjük a meglévő linkből, ha van
+        let userId = "96608"; // Fallback alapértelmezett ID
+        const existingPdfLink = document.querySelector('a[href*="/pdf-jelenleti-iv/"]');
+        if (existingPdfLink) {
+            const parts = existingPdfLink.getAttribute('href').split('/');
+            userId = parts[parts.length - 1];
+        }
+
+        pdfButton.href = `/pdf-jelenleti-iv/${context.year}/${context.month}/${userId}`;
+        pdfButton.target = '_blank';
+        pdfButton.innerHTML = `<i style="font-size: 1.3em; margin-right: 4px;" class="fa fa-file-pdf-o"></i> Letöltés`;
+        
+        // Gomb stílusok (hogy szépen illeszkedjen a felületre)
+        pdfButton.style.display = 'inline-flex';
+        pdfButton.style.alignItems = 'center';
+        pdfButton.style.padding = '6px 12px';
+        pdfButton.style.backgroundColor = '#f8f9fa';
+        pdfButton.style.color = '#333';
+        pdfButton.style.border = '1px solid #ccc';
+        pdfButton.style.borderRadius = '4px';
+        pdfButton.style.textDecoration = 'none';
+        pdfButton.style.fontSize = '14px';
+        pdfButton.style.fontWeight = '500';
+
+        rowDiv.appendChild(pdfButton);
+        container.appendChild(rowDiv);
     }
 
     h4.after(container);
